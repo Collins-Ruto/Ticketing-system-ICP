@@ -16,8 +16,8 @@ struct Event {
     id: u64,
     name: String,
     description: String,
-    date: u64,
-    start_time: u64,
+    date: String,
+    start_time: String,
     location: String,
     attendee_ids: Vec<u64>,
     created_at: u64,
@@ -129,8 +129,8 @@ thread_local! {
 struct EventPayload {
     name: String,
     description: String,
-    date: u64,
-    start_time: u64,
+    date: String,
+    start_time: String,
     location: String,
 }
 
@@ -147,6 +147,7 @@ struct TicketPayload {
     user_id: u64,
 }
 
+// Define the Candid interface
 #[ic_cdk::query]
 fn get_all_events() -> Vec<Event> {
     let events_map: Vec<(u64, Event)> = EVENT_STORAGE.with(|events| events.borrow().iter().collect());
@@ -467,7 +468,9 @@ fn add_user_ticket(user_id: u64, ticket_id: u64) -> Result<(), Error> {
 }
 
 #[ic_cdk::update]
-fn remove_user_ticket(user_id: u64, ticket_id: u64) -> Result<(), Error> {
+fn remove_user_ticket(payload: TicketPayload) -> Result<(), Error> {
+    let ticket_id = payload.ticket_id
+    let user_id = payload.user_id
     let user = _get_user(&user_id).ok_or(Error::NotFound {
         msg: format!("user id:{} does not exist", user_id),
     })?;
@@ -493,25 +496,6 @@ fn remove_user_ticket(user_id: u64, ticket_id: u64) -> Result<(), Error> {
     USER_STORAGE.with(|users| users.borrow_mut().insert(user.id, updated_user));
 
     Ok(())
-}
-
-#[ic_cdk::query]
-fn get_user_events(id: u64) -> Result<Vec<Event>, Error> {
-    let user = _get_user(&id).ok_or(Error::NotFound {
-        msg: format!("user id:{} does not exist", id),
-    })?;
-
-    let mut events = vec![];
-
-    for event_id in user.event_ids {
-        let event = _get_event(&event_id).ok_or(Error::NotFound {
-            msg: format!("event id:{} does not exist", event_id),
-        })?;
-
-        events.push(event);
-    }
-
-    Ok(events)
 }
 
 // Define an Error enum for handling errors
